@@ -9,13 +9,8 @@ import ai.koog.a2a.server.A2AServer
 import ai.koog.a2a.transport.server.jsonrpc.http.HttpJSONRPCServerTransport
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
-import utils.ServerProperties
+import utils.*
 
-
-private const val REVIEWING_AGENT_PATH = "/reviewing-agent"
-private const val REVIEWING_AGENT_CARD_PATH = "$REVIEWING_AGENT_PATH/.well-known/agent-card.json"
-private const val REVIEWING_PORT = 9997
-private const val REVIEWING_HOST  = "http://localhost:$REVIEWING_PORT"
 
 class ReviewingAgentServer() : AgentServer{
     private val logger = KotlinLogging.logger {}

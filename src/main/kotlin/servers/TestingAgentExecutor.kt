@@ -12,7 +12,7 @@ import ai.koog.agents.core.dsl.extension.nodeLLMRequest
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import io.github.cdimascio.dotenv.dotenv
-import tools.AgentServerFactory
+import utils.AgentServerFactory
 
 class TestingAgentExecutor : AgentExecutor {
 

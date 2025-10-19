@@ -13,23 +13,23 @@ import io.ktor.server.cio.CIO
 
 const val CODING_AGENT_PATH = "/coding-agent"
 const val CODING_AGENT_CARD_PATH = "$CODING_AGENT_PATH/.well-known/agent-card.json"
-private val logger = KotlinLogging.logger {}
+private val codinglogger = KotlinLogging.logger {}
 const val PORT = 9999
-const val host  = "http://localhost:$PORT"
+const val CODING_HOST  = "http://localhost:$PORT"
 
 suspend fun main(){
-    logger.info { "Starting coding agent server on $host" }
+    codinglogger.info { "Starting coding agent server on $CODING_HOST" }
 
     val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Coding Agent",
         description = "An AI agent that writes quality code",
-        url = host + CODING_AGENT_PATH,
+        url = CODING_HOST + CODING_AGENT_PATH,
         version = "1.0.0",
         preferredTransport = TransportProtocol.JSONRPC,
         additionalInterfaces = listOf(
             AgentInterface(
-                url = host + CODING_AGENT_PATH,
+                url = CODING_HOST + CODING_AGENT_PATH,
                 transport = TransportProtocol.JSONRPC
             )
         ),
@@ -54,7 +54,7 @@ suspend fun main(){
 
     val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    logger.info { "Coding agent ready  on $host" }
+    codinglogger.info { "Coding agent ready  on $CODING_HOST" }
 
     serverTransport.start(
         engineFactory = CIO,

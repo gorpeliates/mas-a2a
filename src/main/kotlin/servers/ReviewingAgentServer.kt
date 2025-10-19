@@ -15,21 +15,21 @@ const val REVIEWING_AGENT_PATH = "/reviewing-agent"
 const val REVIEWING_AGENT_CARD_PATH = "$REVIEWING_AGENT_PATH/.well-known/agent-card.json"
 private val reviewingLogger = KotlinLogging.logger {}
 const val REVIEWING_PORT = 9997
-const val reviewingHost  = "http://localhost:$REVIEWING_PORT"
+const val REVIEWING_HOST  = "http://localhost:$REVIEWING_PORT"
 
 suspend fun reviewingMain(){
-    reviewingLogger.info { "Starting reviewing agent server on $reviewingHost" }
+    reviewingLogger.info { "Starting reviewing agent server on $REVIEWING_HOST" }
 
     val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Reviewing Agent",
         description = "An AI agent that reviews code and provides GitHub PR-like comments",
-        url = reviewingHost + REVIEWING_AGENT_PATH,
+        url = REVIEWING_HOST + REVIEWING_AGENT_PATH,
         version = "1.0.0",
         preferredTransport = TransportProtocol.JSONRPC,
         additionalInterfaces = listOf(
             AgentInterface(
-                url = reviewingHost + REVIEWING_AGENT_PATH,
+                url = REVIEWING_HOST + REVIEWING_AGENT_PATH,
                 transport = TransportProtocol.JSONRPC
             )
         ),
@@ -54,7 +54,7 @@ suspend fun reviewingMain(){
 
     val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    reviewingLogger.info { "Reviewing agent ready on $reviewingHost" }
+    reviewingLogger.info { "Reviewing agent ready on $REVIEWING_HOST" }
 
     serverTransport.start(
         engineFactory = CIO,

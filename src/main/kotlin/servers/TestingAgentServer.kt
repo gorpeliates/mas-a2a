@@ -15,21 +15,21 @@ const val TESTING_AGENT_PATH = "/testing-agent"
 const val TESTING_AGENT_CARD_PATH = "$TESTING_AGENT_PATH/.well-known/agent-card.json"
 private val testingLogger = KotlinLogging.logger {}
 const val TESTING_PORT = 9998
-const val testingHost  = "http://localhost:$TESTING_PORT"
+const val TESTING_HOST  = "http://localhost:$TESTING_PORT"
 
 suspend fun testingMain(){
-    testingLogger.info { "Starting testing agent server on $testingHost" }
+    testingLogger.info { "Starting testing agent server on $TESTING_HOST" }
 
     val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Testing Agent",
         description = "An AI agent that creates comprehensive unit tests for code",
-        url = testingHost + TESTING_AGENT_PATH,
+        url = TESTING_HOST + TESTING_AGENT_PATH,
         version = "1.0.0",
         preferredTransport = TransportProtocol.JSONRPC,
         additionalInterfaces = listOf(
             AgentInterface(
-                url = testingHost + TESTING_AGENT_PATH,
+                url = TESTING_HOST + TESTING_AGENT_PATH,
                 transport = TransportProtocol.JSONRPC
             )
         ),
@@ -54,7 +54,7 @@ suspend fun testingMain(){
 
     val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    testingLogger.info { "Testing agent ready on $testingHost" }
+    testingLogger.info { "Testing agent ready on $TESTING_HOST" }
 
     serverTransport.start(
         engineFactory = CIO,

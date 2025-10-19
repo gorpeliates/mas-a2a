@@ -17,10 +17,9 @@ private val reviewingLogger = KotlinLogging.logger {}
 const val REVIEWING_PORT = 9997
 const val REVIEWING_HOST  = "http://localhost:$REVIEWING_PORT"
 
-suspend fun reviewingMain(){
-    reviewingLogger.info { "Starting reviewing agent server on $REVIEWING_HOST" }
+class ReviewingAgentServer() : AgentServer{
 
-    val agentCard = AgentCard(
+    override val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Reviewing Agent",
         description = "An AI agent that reviews code and provides GitHub PR-like comments",
@@ -46,23 +45,27 @@ suspend fun reviewingMain(){
         )
     )
 
-    val agentExecutor = ReviewingAgentExecutor()
-    val a2aServer = A2AServer(
-        agentExecutor = agentExecutor,
-        agentCard = agentCard
-    )
+    override suspend fun start(){
+        reviewingLogger.info { "Starting reviewing agent server on $REVIEWING_HOST" }
 
-    val serverTransport = HttpJSONRPCServerTransport(a2aServer)
+        val agentExecutor = ReviewingAgentExecutor()
+        val a2aServer = A2AServer(
+            agentExecutor = agentExecutor,
+            agentCard = agentCard
+        )
 
-    reviewingLogger.info { "Reviewing agent ready on $REVIEWING_HOST" }
+        val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    serverTransport.start(
-        engineFactory = CIO,
-        port = REVIEWING_PORT,
-        path = REVIEWING_AGENT_PATH,
-        wait = true,
-        agentCard = agentCard,
-        agentCardPath = REVIEWING_AGENT_CARD_PATH,
-    )
+        reviewingLogger.info { "Reviewing agent ready on $REVIEWING_HOST" }
 
+        serverTransport.start(
+            engineFactory = CIO,
+            port = REVIEWING_PORT,
+            path = REVIEWING_AGENT_PATH,
+            wait = true,
+            agentCard = agentCard,
+            agentCardPath = REVIEWING_AGENT_CARD_PATH,
+        )
+    }
 }
+

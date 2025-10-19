@@ -11,16 +11,14 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
 
 
-const val CODING_AGENT_PATH = "/coding-agent"
-const val CODING_AGENT_CARD_PATH = "$CODING_AGENT_PATH/.well-known/agent-card.json"
-private val codinglogger = KotlinLogging.logger {}
-const val PORT = 9999
-const val CODING_HOST  = "http://localhost:$PORT"
+private const val CODING_AGENT_PATH = "/coding-agent"
+private const val CODING_AGENT_CARD_PATH = "$CODING_AGENT_PATH/.well-known/agent-card.json"
+private const val CODING_PORT = 9999
+private const val CODING_HOST  = "http://localhost:$CODING_PORT"
 
-suspend fun main(){
-    codinglogger.info { "Starting coding agent server on $CODING_HOST" }
+class CodingAgentServer : AgentServer{
 
-    val agentCard = AgentCard(
+    override val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Coding Agent",
         description = "An AI agent that writes quality code",
@@ -46,23 +44,28 @@ suspend fun main(){
         )
     )
 
-    val agentExecutor = CodingAgentExecutor()
-    val a2aServer = A2AServer(
-        agentExecutor = agentExecutor,
-        agentCard = agentCard
-    )
+    private val logger = KotlinLogging.logger {}
 
-    val serverTransport = HttpJSONRPCServerTransport(a2aServer)
+    override suspend fun start(){
+        logger.info { "Starting coding agent server on $CODING_HOST" }
 
-    codinglogger.info { "Coding agent ready  on $CODING_HOST" }
+        val agentExecutor = CodingAgentExecutor()
+        val a2aServer = A2AServer(
+            agentExecutor = agentExecutor,
+            agentCard = this.agentCard
+        )
 
-    serverTransport.start(
-        engineFactory = CIO,
-        port = PORT,
-        path = CODING_AGENT_PATH,
-        wait = true,
-        agentCard = agentCard,
-        agentCardPath = CODING_AGENT_CARD_PATH,
-    )
+        val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
+        logger.info { "Coding agent ready  on $CODING_HOST" }
+
+        serverTransport.start(
+            engineFactory = CIO,
+            port = CODING_PORT,
+            path = CODING_AGENT_PATH,
+            wait = true,
+            agentCard = agentCard,
+            agentCardPath = CODING_AGENT_CARD_PATH,
+        )
+    }
 }

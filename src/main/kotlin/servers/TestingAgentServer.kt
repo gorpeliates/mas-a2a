@@ -17,10 +17,8 @@ private val testingLogger = KotlinLogging.logger {}
 const val TESTING_PORT = 9998
 const val TESTING_HOST  = "http://localhost:$TESTING_PORT"
 
-suspend fun testingMain(){
-    testingLogger.info { "Starting testing agent server on $TESTING_HOST" }
-
-    val agentCard = AgentCard(
+class TestingAgentServer : AgentServer {
+    override val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Testing Agent",
         description = "An AI agent that creates comprehensive unit tests for code",
@@ -45,24 +43,30 @@ suspend fun testingMain(){
             )
         )
     )
+    override suspend fun start(){
+        testingLogger.info { "Starting testing agent server on $TESTING_HOST" }
 
-    val agentExecutor = TestingAgentExecutor()
-    val a2aServer = A2AServer(
-        agentExecutor = agentExecutor,
-        agentCard = agentCard
-    )
 
-    val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    testingLogger.info { "Testing agent ready on $TESTING_HOST" }
+        val agentExecutor = TestingAgentExecutor()
+        val a2aServer = A2AServer(
+            agentExecutor = agentExecutor,
+            agentCard = agentCard
+        )
 
-    serverTransport.start(
-        engineFactory = CIO,
-        port = TESTING_PORT,
-        path = TESTING_AGENT_PATH,
-        wait = true,
-        agentCard = agentCard,
-        agentCardPath = TESTING_AGENT_CARD_PATH,
-    )
+        val serverTransport = HttpJSONRPCServerTransport(a2aServer)
+
+        testingLogger.info { "Testing agent ready on $TESTING_HOST" }
+
+        serverTransport.start(
+            engineFactory = CIO,
+            port = TESTING_PORT,
+            path = TESTING_AGENT_PATH,
+            wait = true,
+            agentCard = agentCard,
+            agentCardPath = TESTING_AGENT_CARD_PATH,
+        )
+
+    }
 
 }

@@ -1,14 +1,16 @@
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import servers.CodingAgentServer
+import servers.ReviewingAgentServer
+import servers.TestingAgentServer
 
 suspend fun main(): Unit = supervisorScope {
-    launch { servers.main() }
+    launch { CodingAgentServer().start() }
     
-    launch { servers.testingMain() }
+    launch { ReviewingAgentServer().start() }
     
-    launch { servers.reviewingMain() }
+    launch { TestingAgentServer().start() }
 
     awaitCancellation()
 }

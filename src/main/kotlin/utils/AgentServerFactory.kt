@@ -1,4 +1,4 @@
-package tools
+package utils
 
 import ai.koog.a2a.model.MessageSendParams
 import ai.koog.a2a.server.session.RequestContext

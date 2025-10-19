@@ -11,25 +11,25 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
 
 
-const val CODING_AGENT_PATH = "/coding-agent"
-const val CODING_AGENT_CARD_PATH = "$CODING_AGENT_PATH/.well-known/agent-card.json"
-private val logger = KotlinLogging.logger {}
-const val PORT = 9999
-const val host  = "http://localhost:$PORT"
+const val TESTING_AGENT_PATH = "/testing-agent"
+const val TESTING_AGENT_CARD_PATH = "$TESTING_AGENT_PATH/.well-known/agent-card.json"
+private val testingLogger = KotlinLogging.logger {}
+const val TESTING_PORT = 9998
+const val testingHost  = "http://localhost:$TESTING_PORT"
 
-suspend fun main(){
-    logger.info { "Starting coding agent server on $host" }
+suspend fun testingMain(){
+    testingLogger.info { "Starting testing agent server on $testingHost" }
 
     val agentCard = AgentCard(
         protocolVersion = "0.3.0",
-        name = "Coding Agent",
-        description = "An AI agent that writes quality code",
-        url = host + CODING_AGENT_PATH,
+        name = "Testing Agent",
+        description = "An AI agent that creates comprehensive unit tests for code",
+        url = testingHost + TESTING_AGENT_PATH,
         version = "1.0.0",
         preferredTransport = TransportProtocol.JSONRPC,
         additionalInterfaces = listOf(
             AgentInterface(
-                url = host + CODING_AGENT_PATH,
+                url = testingHost + TESTING_AGENT_PATH,
                 transport = TransportProtocol.JSONRPC
             )
         ),
@@ -38,15 +38,15 @@ suspend fun main(){
         defaultOutputModes = listOf("text"),
         skills = listOf(
             AgentSkill(
-                id = "coding",
-                name = "Coding Agent",
-                description = "An AI agent that writes quality code",
-                tags = listOf("coding","programming")
+                id = "testing",
+                name = "Testing Agent",
+                description = "An AI agent that creates comprehensive unit tests for code",
+                tags = listOf("testing", "unit-tests", "quality-assurance")
             )
         )
     )
 
-    val agentExecutor = CodingAgentExecutor()
+    val agentExecutor = TestingAgentExecutor()
     val a2aServer = A2AServer(
         agentExecutor = agentExecutor,
         agentCard = agentCard
@@ -54,15 +54,15 @@ suspend fun main(){
 
     val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    logger.info { "Coding agent ready  on $host" }
+    testingLogger.info { "Testing agent ready on $testingHost" }
 
     serverTransport.start(
         engineFactory = CIO,
-        port = PORT,
-        path = CODING_AGENT_PATH,
+        port = TESTING_PORT,
+        path = TESTING_AGENT_PATH,
         wait = true,
         agentCard = agentCard,
-        agentCardPath = CODING_AGENT_CARD_PATH,
+        agentCardPath = TESTING_AGENT_CARD_PATH,
     )
 
 }

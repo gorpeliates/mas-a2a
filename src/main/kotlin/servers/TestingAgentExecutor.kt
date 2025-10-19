@@ -9,16 +9,12 @@ import ai.koog.agents.a2a.core.toA2AMessage
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.ext.tool.AskUser
-import ai.koog.agents.ext.tool.ExitTool
-import ai.koog.agents.ext.tool.SayToUser
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import io.github.cdimascio.dotenv.dotenv
 import tools.AgentServerFactory
 
-class CodingAgentExecutor : AgentExecutor {
+class TestingAgentExecutor : AgentExecutor {
 
     val promptExecutor: PromptExecutor = simpleOpenAIExecutor(dotenv()["OPENAI_API_KEY"])
     override suspend fun execute(
@@ -26,31 +22,25 @@ class CodingAgentExecutor : AgentExecutor {
         eventProcessor: SessionEventProcessor
     ) {
         val agent = AgentServerFactory.createA2AServerAgent(
-            agentName = "CodingAgent",
-            systemPrompt = "You are a coding agent that writes clean and understandable code in various" +
-                    "programming languages based on your task.",
-            strategy = codingAgentStrategy(),
+            agentName = "TestingAgent",
+            systemPrompt = "You are a testing agent that creates comprehensive unit tests for code. " +
+                    "You write clear, well-structured unit tests that cover edge cases, normal cases, " +
+                    "and error conditions. You follow testing best practices and use appropriate testing frameworks.",
+            strategy = testingAgentStrategy(),
             promptExecutor = promptExecutor,
             context = context,
-            eventProcessor = eventProcessor,
-            toolRegistry = ToolRegistry {
-                tool(AskUser)
-                tool(ExitTool)
-                tool(SayToUser)
-            }
+            eventProcessor = eventProcessor
         )
         val message = agent.run(context.params.message)
-
         eventProcessor.sendMessage(message = message)
-
     }
 }
 
-private fun codingAgentStrategy() = strategy<A2AMessage, A2AMessage>("coding") {
+private fun testingAgentStrategy() = strategy<A2AMessage, A2AMessage>("testing") {
 
-    val nodeCreateRequirements by nodeLLMRequest()
-    val nodeWriteCode by nodeLLMRequest()
-    edge(nodeStart forwardTo nodeCreateRequirements transformed { it.toString()})
-    edge(nodeCreateRequirements forwardTo nodeWriteCode transformed { it.toString() })
-    edge(nodeWriteCode forwardTo nodeFinish transformed { it.toA2AMessage() })
+    val nodeAnalyzeCode by nodeLLMRequest()
+    val nodeWriteTests by nodeLLMRequest()
+    edge(nodeStart forwardTo nodeAnalyzeCode transformed { it.toString()})
+    edge(nodeAnalyzeCode forwardTo nodeWriteTests transformed { it.toString() })
+    edge(nodeWriteTests forwardTo nodeFinish transformed { it.toA2AMessage() })
 }

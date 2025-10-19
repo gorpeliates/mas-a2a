@@ -18,7 +18,7 @@ import ai.koog.prompt.executor.model.PromptExecutor
 import io.github.cdimascio.dotenv.dotenv
 import tools.AgentServerFactory
 
-class CodingAgentExecutor : AgentExecutor {
+class ReviewingAgentExecutor : AgentExecutor {
 
     val promptExecutor: PromptExecutor = simpleOpenAIExecutor(dotenv()["OPENAI_API_KEY"])
     override suspend fun execute(
@@ -26,10 +26,12 @@ class CodingAgentExecutor : AgentExecutor {
         eventProcessor: SessionEventProcessor
     ) {
         val agent = AgentServerFactory.createA2AServerAgent(
-            agentName = "CodingAgent",
-            systemPrompt = "You are a coding agent that writes clean and understandable code in various" +
-                    "programming languages based on your task.",
-            strategy = codingAgentStrategy(),
+            agentName = "ReviewingAgent",
+            systemPrompt = "You are a code reviewing agent that provides thorough, constructive code reviews. " +
+                    "You analyze code for best practices, potential bugs, performance issues, security concerns, " +
+                    "readability, and maintainability. You provide feedback in GitHub PR comment style with specific " +
+                    "line references, severity levels, and actionable suggestions for improvement.",
+            strategy = reviewingAgentStrategy(),
             promptExecutor = promptExecutor,
             context = context,
             eventProcessor = eventProcessor,
@@ -42,15 +44,16 @@ class CodingAgentExecutor : AgentExecutor {
         val message = agent.run(context.params.message)
 
         eventProcessor.sendMessage(message = message)
-
     }
 }
 
-private fun codingAgentStrategy() = strategy<A2AMessage, A2AMessage>("coding") {
+private fun reviewingAgentStrategy() = strategy<A2AMessage, A2AMessage>("reviewing") {
 
-    val nodeCreateRequirements by nodeLLMRequest()
-    val nodeWriteCode by nodeLLMRequest()
-    edge(nodeStart forwardTo nodeCreateRequirements transformed { it.toString()})
-    edge(nodeCreateRequirements forwardTo nodeWriteCode transformed { it.toString() })
-    edge(nodeWriteCode forwardTo nodeFinish transformed { it.toA2AMessage() })
+    val nodeAnalyzeStructure by nodeLLMRequest()
+    val nodeIdentifyIssues by nodeLLMRequest()
+    val nodeGenerateComments by nodeLLMRequest()
+    edge(nodeStart forwardTo nodeAnalyzeStructure transformed { it.toString()})
+    edge(nodeAnalyzeStructure forwardTo nodeIdentifyIssues transformed { it.toString() })
+    edge(nodeIdentifyIssues forwardTo nodeGenerateComments transformed { it.toString() })
+    edge(nodeGenerateComments forwardTo nodeFinish transformed { it.toA2AMessage() })
 }

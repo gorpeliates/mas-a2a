@@ -11,25 +11,25 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
 
 
-const val CODING_AGENT_PATH = "/coding-agent"
-const val CODING_AGENT_CARD_PATH = "$CODING_AGENT_PATH/.well-known/agent-card.json"
-private val logger = KotlinLogging.logger {}
-const val PORT = 9999
-const val host  = "http://localhost:$PORT"
+const val REVIEWING_AGENT_PATH = "/reviewing-agent"
+const val REVIEWING_AGENT_CARD_PATH = "$REVIEWING_AGENT_PATH/.well-known/agent-card.json"
+private val reviewingLogger = KotlinLogging.logger {}
+const val REVIEWING_PORT = 9997
+const val reviewingHost  = "http://localhost:$REVIEWING_PORT"
 
-suspend fun main(){
-    logger.info { "Starting coding agent server on $host" }
+suspend fun reviewingMain(){
+    reviewingLogger.info { "Starting reviewing agent server on $reviewingHost" }
 
     val agentCard = AgentCard(
         protocolVersion = "0.3.0",
-        name = "Coding Agent",
-        description = "An AI agent that writes quality code",
-        url = host + CODING_AGENT_PATH,
+        name = "Reviewing Agent",
+        description = "An AI agent that reviews code and provides GitHub PR-like comments",
+        url = reviewingHost + REVIEWING_AGENT_PATH,
         version = "1.0.0",
         preferredTransport = TransportProtocol.JSONRPC,
         additionalInterfaces = listOf(
             AgentInterface(
-                url = host + CODING_AGENT_PATH,
+                url = reviewingHost + REVIEWING_AGENT_PATH,
                 transport = TransportProtocol.JSONRPC
             )
         ),
@@ -38,15 +38,15 @@ suspend fun main(){
         defaultOutputModes = listOf("text"),
         skills = listOf(
             AgentSkill(
-                id = "coding",
-                name = "Coding Agent",
-                description = "An AI agent that writes quality code",
-                tags = listOf("coding","programming")
+                id = "reviewing",
+                name = "Reviewing Agent",
+                description = "An AI agent that reviews code and provides GitHub PR-like comments",
+                tags = listOf("code-review", "quality-assurance", "best-practices")
             )
         )
     )
 
-    val agentExecutor = CodingAgentExecutor()
+    val agentExecutor = ReviewingAgentExecutor()
     val a2aServer = A2AServer(
         agentExecutor = agentExecutor,
         agentCard = agentCard
@@ -54,15 +54,15 @@ suspend fun main(){
 
     val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-    logger.info { "Coding agent ready  on $host" }
+    reviewingLogger.info { "Reviewing agent ready on $reviewingHost" }
 
     serverTransport.start(
         engineFactory = CIO,
-        port = PORT,
-        path = CODING_AGENT_PATH,
+        port = REVIEWING_PORT,
+        path = REVIEWING_AGENT_PATH,
         wait = true,
         agentCard = agentCard,
-        agentCardPath = CODING_AGENT_CARD_PATH,
+        agentCardPath = REVIEWING_AGENT_CARD_PATH,
     )
 
 }

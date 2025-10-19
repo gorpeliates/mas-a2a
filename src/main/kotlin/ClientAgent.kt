@@ -1,5 +1,7 @@
 
 import ai.koog.a2a.client.A2AClient
+import ai.koog.a2a.client.UrlAgentCardResolver
+import ai.koog.a2a.transport.client.jsonrpc.http.HttpJSONRPCClientTransport
 
 import ai.koog.agents.a2a.client.feature.A2AAgentClient
 import ai.koog.agents.core.agent.AIAgent
@@ -11,10 +13,24 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import io.github.cdimascio.dotenv.dotenv
+import kotlinx.coroutines.runBlocking
+import utils.ServerProperties
 
 
-class ClientAgent {
-    private val clients = mapOf<String, A2AClient>()
+class ClientAgent(serverProperties : List<ServerProperties>) {
+
+    private val clients : Map<String, A2AClient> = serverProperties.associate {
+        properties ->
+            val transport = HttpJSONRPCClientTransport(url = properties.host)
+            val agentCardResolver =
+                UrlAgentCardResolver(baseUrl = properties.host, path =properties.agentPath)
+            val client = A2AClient(transport = transport, agentCardResolver = agentCardResolver)
+
+            val agentId = properties.id
+            runBlocking { client.connect() }
+            agentId to client
+    }
+
     private val executor: PromptExecutor = simpleOpenAIExecutor(dotenv()["OPENAI_API_KEY"])
 
     private val agentConfig = AIAgentConfig(
@@ -38,9 +54,6 @@ class ClientAgent {
             this.a2aClients = clients
         }
     }
-    init {
-
-    }
 
     suspend fun run(message: String): String {
         return this.agent.run(message)
@@ -49,7 +62,5 @@ class ClientAgent {
 
 
 private fun clientStrategy() = strategy<String, String> ("clientStrategy") {
-
-
 
 }

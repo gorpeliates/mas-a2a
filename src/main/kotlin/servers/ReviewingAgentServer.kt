@@ -9,15 +9,16 @@ import ai.koog.a2a.server.A2AServer
 import ai.koog.a2a.transport.server.jsonrpc.http.HttpJSONRPCServerTransport
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
+import utils.ServerProperties
 
 
-const val REVIEWING_AGENT_PATH = "/reviewing-agent"
-const val REVIEWING_AGENT_CARD_PATH = "$REVIEWING_AGENT_PATH/.well-known/agent-card.json"
-private val reviewingLogger = KotlinLogging.logger {}
-const val REVIEWING_PORT = 9997
-const val REVIEWING_HOST  = "http://localhost:$REVIEWING_PORT"
+private const val REVIEWING_AGENT_PATH = "/reviewing-agent"
+private const val REVIEWING_AGENT_CARD_PATH = "$REVIEWING_AGENT_PATH/.well-known/agent-card.json"
+private const val REVIEWING_PORT = 9997
+private const val REVIEWING_HOST  = "http://localhost:$REVIEWING_PORT"
 
 class ReviewingAgentServer() : AgentServer{
+    private val logger = KotlinLogging.logger {}
 
     override val agentCard = AgentCard(
         protocolVersion = "0.3.0",
@@ -44,9 +45,16 @@ class ReviewingAgentServer() : AgentServer{
             )
         )
     )
+    override val serverProperties: ServerProperties = ServerProperties(
+        id = "reviewing-agent",
+        agentPath = REVIEWING_AGENT_PATH,
+        agentCardPath = REVIEWING_AGENT_CARD_PATH,
+        port = REVIEWING_PORT,
+        host = REVIEWING_HOST
+    )
 
     override suspend fun start(){
-        reviewingLogger.info { "Starting reviewing agent server on $REVIEWING_HOST" }
+        logger.info { "Starting reviewing agent server on $REVIEWING_HOST" }
 
         val agentExecutor = ReviewingAgentExecutor()
         val a2aServer = A2AServer(
@@ -56,7 +64,7 @@ class ReviewingAgentServer() : AgentServer{
 
         val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-        reviewingLogger.info { "Reviewing agent ready on $REVIEWING_HOST" }
+        logger.info { "Reviewing agent ready on $REVIEWING_HOST" }
 
         serverTransport.start(
             engineFactory = CIO,

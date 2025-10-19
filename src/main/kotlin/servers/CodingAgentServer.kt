@@ -9,6 +9,7 @@ import ai.koog.a2a.server.A2AServer
 import ai.koog.a2a.transport.server.jsonrpc.http.HttpJSONRPCServerTransport
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
+import utils.ServerProperties
 
 
 private const val CODING_AGENT_PATH = "/coding-agent"
@@ -42,6 +43,13 @@ class CodingAgentServer : AgentServer{
                 tags = listOf("coding","programming")
             )
         )
+    )
+    override val serverProperties: ServerProperties = ServerProperties(
+        id = "coding-agent",
+        agentPath = CODING_AGENT_PATH,
+        agentCardPath = CODING_AGENT_CARD_PATH,
+        port =  CODING_PORT,
+        host =  CODING_HOST,
     )
 
     private val logger = KotlinLogging.logger {}

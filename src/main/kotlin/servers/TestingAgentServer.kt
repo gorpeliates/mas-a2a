@@ -9,15 +9,17 @@ import ai.koog.a2a.server.A2AServer
 import ai.koog.a2a.transport.server.jsonrpc.http.HttpJSONRPCServerTransport
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.cio.CIO
+import utils.ServerProperties
 
 
-const val TESTING_AGENT_PATH = "/testing-agent"
-const val TESTING_AGENT_CARD_PATH = "$TESTING_AGENT_PATH/.well-known/agent-card.json"
-private val testingLogger = KotlinLogging.logger {}
-const val TESTING_PORT = 9998
-const val TESTING_HOST  = "http://localhost:$TESTING_PORT"
+private const val TESTING_AGENT_PATH = "/testing-agent"
+private const val TESTING_AGENT_CARD_PATH = "$TESTING_AGENT_PATH/.well-known/agent-card.json"
+private const val TESTING_PORT = 9998
+private const val TESTING_HOST  = "http://localhost:$TESTING_PORT"
 
 class TestingAgentServer : AgentServer {
+    private val logger = KotlinLogging.logger {}
+
     override val agentCard = AgentCard(
         protocolVersion = "0.3.0",
         name = "Testing Agent",
@@ -43,8 +45,16 @@ class TestingAgentServer : AgentServer {
             )
         )
     )
+    override val serverProperties: ServerProperties = ServerProperties(
+        id = "testing-agent",
+        agentPath = TESTING_AGENT_PATH,
+        agentCardPath = TESTING_AGENT_CARD_PATH,
+        port = TESTING_PORT,
+        host = TESTING_HOST
+    )
+
     override suspend fun start(){
-        testingLogger.info { "Starting testing agent server on $TESTING_HOST" }
+        logger.info { "Starting testing agent server on $TESTING_HOST" }
 
 
 
@@ -56,7 +66,7 @@ class TestingAgentServer : AgentServer {
 
         val serverTransport = HttpJSONRPCServerTransport(a2aServer)
 
-        testingLogger.info { "Testing agent ready on $TESTING_HOST" }
+        logger.info { "Testing agent ready on $TESTING_HOST" }
 
         serverTransport.start(
             engineFactory = CIO,

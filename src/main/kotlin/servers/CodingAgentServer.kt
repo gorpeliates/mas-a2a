@@ -27,7 +27,7 @@ class CodingAgentServer : AgentServer{
                 transport = TransportProtocol.JSONRPC
             )
         ),
-        capabilities = AgentCapabilities(streaming = false),
+        capabilities = AgentCapabilities(streaming = true),
         defaultInputModes = listOf("text"),
         defaultOutputModes = listOf("text"),
         skills = listOf(

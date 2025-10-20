@@ -9,9 +9,12 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentGraphStrategy
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.features.opentelemetry.feature.OpenTelemetry
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.model.PromptExecutor
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+import io.opentelemetry.sdk.trace.samplers.Sampler
 
 object AgentServerFactory {
 
@@ -46,6 +49,16 @@ object AgentServerFactory {
                 }
             } else {
                 error("Could not create A2AAgent config for $agentName")
+            }
+            install(OpenTelemetry) {
+                setServiceInfo("clientAgent", "1.0.0")
+                setSampler(Sampler.alwaysOn())
+                addSpanExporter(
+                    OtlpHttpSpanExporter.builder()
+                        .setEndpoint("http://localhost:4318/v1/traces")
+                        .build()
+                )
+                setVerbose(true)
             }
         }
     }

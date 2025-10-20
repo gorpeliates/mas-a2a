@@ -9,23 +9,28 @@ import ai.koog.a2a.transport.client.jsonrpc.http.HttpJSONRPCClientTransport
 
 import ai.koog.agents.a2a.client.feature.A2AAgentClient
 import ai.koog.agents.a2a.client.feature.A2AClientRequest
-import ai.koog.agents.a2a.client.feature.nodeA2AClientGetAgentCard
 import ai.koog.agents.a2a.client.feature.nodeA2AClientGetAllAgents
 import ai.koog.agents.a2a.client.feature.nodeA2AClientSendMessage
-import ai.koog.agents.a2a.core.toA2AMessage
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.context.AIAgentGraphContextBase
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.nodeLLMRequest
+import ai.koog.agents.core.dsl.extension.nodeLLMRequestStructured
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.ext.agent.reActStrategy
+import ai.koog.agents.ext.tool.ExitTool
+import kotlinx.serialization.Serializable
+import ai.koog.agents.features.opentelemetry.feature.OpenTelemetry
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.structure.StructureFixingParser
+import ai.koog.prompt.structure.StructuredResponse
 import io.github.cdimascio.dotenv.dotenv
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+import io.opentelemetry.sdk.trace.samplers.Sampler
 import kotlinx.coroutines.runBlocking
 import utils.ServerProperties
 import kotlin.uuid.ExperimentalUuidApi
@@ -39,16 +44,13 @@ class ClientAgent(serverProperties : List<ServerProperties>) {
             val transport = HttpJSONRPCClientTransport(url = properties.host + properties.agentPath)
             val agentCardResolver =
                 UrlAgentCardResolver(baseUrl = properties.host, path =properties.agentCardPath)
-
-        val client = A2AClient(transport = transport, agentCardResolver = agentCardResolver)
+            val client = A2AClient(transport = transport, agentCardResolver = agentCardResolver)
             val agentId = properties.id
             try {
                 runBlocking { client.connect() }
             } catch (e: Exception) {
                 error("Failed to connect to $agentId"+e.stackTraceToString())
-
             }
-
             agentId to client
     }
 
@@ -62,17 +64,29 @@ class ClientAgent(serverProperties : List<ServerProperties>) {
             )
         },
         model = OpenAIModels.Chat.GPT5Mini,
-        maxAgentIterations = 5
+        maxAgentIterations = 100
     )
 
     private val agent = AIAgent<String, String>(
         promptExecutor = executor,
         agentConfig = agentConfig,
         strategy = clientStrategy(),
-        toolRegistry = ToolRegistry.EMPTY
+        toolRegistry = ToolRegistry {
+            tool(ExitTool)
+        }
     ) {
         install(A2AAgentClient){
             this.a2aClients = clients
+        }
+        install(OpenTelemetry) {
+            setServiceInfo("clientAgent", "1.0.0")
+            setSampler(Sampler.alwaysOn())
+            addSpanExporter(
+                OtlpHttpSpanExporter.builder()
+                    .setEndpoint("http://localhost:4318/v1/traces")
+                    .build()
+            )
+            setVerbose(true)
         }
     }
 
@@ -82,18 +96,45 @@ class ClientAgent(serverProperties : List<ServerProperties>) {
 }
 
 
+@Serializable
+data class AgentServerChoice(
+    val agentId: String
+)
+
 private fun clientStrategy() = strategy<String, String> ("clientStrategy") {
     val nodeReason by nodeLLMRequest("reason")
     val nodeSendA2AMessage by nodeA2AClientSendMessage("senda2aMessage")
-    val nodeGetAgents by nodeA2AClientGetAllAgents()
-    val nodeGetAgentCard by nodeA2AClientGetAgentCard()
-
-    edge(nodeStart forwardTo nodeGetAgents transformed {})
+    val nodeGetAgents by nodeA2AClientGetAllAgents("getAllAgents")
+    val nodeGetAgentID by nodeLLMRequestStructured<AgentServerChoice>(
+        name= "getAgentID",
+        examples = listOf(AgentServerChoice("coding-agent"), AgentServerChoice("reviewing-agent"), AgentServerChoice("testing-agent")),
+        fixingParser = StructureFixingParser(
+            fixingModel = OpenAIModels.Chat.GPT5Mini,
+            retries = 3
+        )
+    )
+    val processAgentServerChoice by node<Result<StructuredResponse<AgentServerChoice>>,String> ("processAgentServerChoice")
+    { result ->
+        when {
+            result.isSuccess -> {
+                val response = result.getOrThrow()
+                val choice = response.structure
+                choice.agentId
+            }
+            else -> {
+                "Error: Unable to process agent choice."
+            }
+        }
+    }
+    edge(nodeStart forwardTo nodeReason )
+/*    edge(nodeReason forwardTo nodeGetAgents transformed {})
     edge(nodeGetAgents forwardTo nodeReason transformed { agents ->
-        "The available agents are: ${agents.joinToString { it.agentId }}. " +
-                "Decide which agent to send the message to based on the input: '$agentInput'"
-    })
-    edge(nodeReason forwardTo nodeSendA2AMessage transformed { buildA2ARequest(it.toString())})
+        "The available agents are: ${agents.joinToString { it.toString() }}. "
+    })*/
+
+    edge(nodeReason forwardTo nodeGetAgentID transformed {it.toString()})
+    edge(nodeGetAgentID forwardTo processAgentServerChoice)
+    edge(processAgentServerChoice forwardTo nodeSendA2AMessage transformed { buildA2ARequest(it)})
     edge(nodeReason forwardTo nodeFinish transformed { it.toString() })
     edge(nodeSendA2AMessage forwardTo nodeReason transformed {it.toString()})
 }
